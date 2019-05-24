@@ -39,11 +39,9 @@ Render.run(render);
 
 
 // create two ships
-function makeaship() {
+function makeaship(x, y) {
     return Bodies.circle(
-        Common.random(0, render.options.width),
-        Common.random(0, render.options.height),
-        20,
+        x, y, 15,
         {
             restitution: 0.99,  // bounce
             friction: 0,
@@ -58,8 +56,8 @@ function makeaship() {
         }
     );
 }
-var ship1 = makeaship(),
-    ship2 = makeaship();
+var ship1 = makeaship(100, 500),
+    ship2 = makeaship(700, 100);
 
 World.add(world, [ship1, ship2]);
 
@@ -80,10 +78,12 @@ Events.on(engine, "beforeTick", function(event) {
     if (keys[37]) {
         // left arrow
         Body.rotate(ship1, -0.1);
+        Body.setAngularVelocity(ship1, 0);
     }
     if (keys[39]) {
         // right arrow
         Body.rotate(ship1, 0.1);
+        Body.setAngularVelocity(ship1, 0);
     }
     if (keys[38]) {
         // up arrow
@@ -91,33 +91,13 @@ Events.on(engine, "beforeTick", function(event) {
             {x: ship1.position.x, y: ship1.position.y},
             {x: Math.cos(ship1.angle) * 0.001, y: Math.sin(ship1.angle) * 0.001}
             )
+        Body.setAngularVelocity(ship1, 0);
     }
 });
 
 
 
+// go!
 var runner = Runner.create();
 Runner.run(runner, engine);
-
-
-
-
-// make Bodies draggable
-var mouse = Mouse.create(render.canvas),
-    mouseConstraint = MouseConstraint.create(engine, {
-        mouse: mouse,
-        constraint: {
-            stiffness: 0.2,  // of spring
-            render: {
-                visible: false
-            }
-        }
-    });
-
-World.add(world, mouseConstraint);
-
-// keep the mouse in sync with rendering
-render.mouse = mouse;
-
-
 
