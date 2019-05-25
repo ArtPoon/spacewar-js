@@ -1,5 +1,8 @@
 // module aliases
-Matter.use('matter-wrap');
+Matter.use(
+    'matter-wrap',
+    'matter-attractors'
+);
 
 var Engine = Matter.Engine,
     Render = Matter.Render,
@@ -17,22 +20,25 @@ var Engine = Matter.Engine,
 var engine = Engine.create(),
     world = engine.world;
 
-engine.world.gravity.y = 0;
+engine.world.gravity.scale = 0;
+
+
+var width = window.innerWidth,
+    height = window.innerHeight;
 
 // create renderer
 var render = Render.create({
     element: document.body,
     engine: engine,
     options: {
-        width: 800,
-        height: 600,
+        width: width,
+        height: height,
         showVelocity: true,
         showAngleIndicator: true
     }
 });
 
 Render.run(render);
-
 
 
 
@@ -56,13 +62,31 @@ function makeaship(x, y) {
         }
     );
 }
-var ship1 = makeaship(100, 500),
-    ship2 = makeaship(700, 100);
+var ship1 = makeaship(width*0.1, height*0.9),
+    ship2 = makeaship(width*0.9, height*0.1);
 
-World.add(world, [ship1, ship2]);
+var planet = Bodies.circle(
+    width*0.5, height*0.5, 30,
+    {
+        isStatic: true,
+        plugin: {
+            attractors: [
+                function(bodyA, bodyB) {
+                    return {
+                        x: (bodyA.position.x - bodyB.position.x) * 1e-7,
+                        y: (bodyA.position.y - bodyB.position.y) * 1e-7,
+                    };
+                }
+            ]
+        }
+    }
+    );
+
+World.add(world, [planet, ship1, ship2]);
 
 
-
+var thrust = 0.0005,
+    spin = 0.1;
 
 // looks for key presses and logs them
 // https://gist.github.com/lilgreenland/c6f4b78a78b73dc8b1f8fa650d617b85
@@ -75,25 +99,42 @@ document.body.addEventListener("keyup", function(e) {
 });
 
 Events.on(engine, "beforeTick", function(event) {
-    if (keys[37]) {
-        // left arrow
-        Body.rotate(ship1, -0.1);
+    if (keys[65]) {  // a
+        Body.rotate(ship1, -spin);
         Body.setAngularVelocity(ship1, 0);
     }
-    if (keys[39]) {
-        // right arrow
-        Body.rotate(ship1, 0.1);
+    if (keys[68]) {  // d
+        Body.rotate(ship1, spin);
         Body.setAngularVelocity(ship1, 0);
     }
-    if (keys[38]) {
-        // up arrow
+    if (keys[83]) {  // s, thrust
         Body.applyForce(ship1,
             {x: ship1.position.x, y: ship1.position.y},
-            {x: Math.cos(ship1.angle) * 0.001, y: Math.sin(ship1.angle) * 0.001}
-            )
+            {x: Math.cos(ship1.angle) * thrust, y: Math.sin(ship1.angle) * thrust}
+        );
         Body.setAngularVelocity(ship1, 0);
     }
+
+    if (keys[75]) {  // k, rotate left
+        Body.rotate(ship2, -spin);
+        Body.setAngularVelocity(ship2, 0);
+    }
+    if (keys[186]) {  // ;, rotate right
+        Body.rotate(ship2, spin);
+        Body.setAngularVelocity(ship2, 0);
+    }
+    if (keys[76]) {  // l, thrust
+        Body.applyForce(ship2,
+            {x: ship2.position.x, y: ship2.position.y},
+            {x: Math.cos(ship2.angle) * thrust, y: Math.sin(ship2.angle) * thrust}
+            );
+        Body.setAngularVelocity(ship2, 0);
+    }
+
+
 });
+
+
 
 
 
