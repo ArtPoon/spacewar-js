@@ -8,13 +8,12 @@ var Engine = Matter.Engine,
     Render = Matter.Render,
     Runner = Matter.Runner,
     Events = Matter.Events,
-    Composites = Matter.Composites,
     Common = Matter.Common,
-    MouseConstraint = Matter.MouseConstraint,
-    Mouse = Matter.Mouse,
     World = Matter.World,
     Body = Matter.Body,
+    Vector = Matter.Vector,
     Bodies = Matter.Bodies;
+
 
 // create an engine
 var engine = Engine.create(),
@@ -23,12 +22,23 @@ var engine = Engine.create(),
 engine.world.gravity.scale = 0;
 
 
-var width = window.innerWidth,
-    height = window.innerHeight;
+var width = document.body.clientWidth,
+    height = document.documentElement.clientHeight;
+
+var canvas1 = document.getElementById('world');
+canvas1.width = width;
+canvas1.height = height;
+
+var canvas2 = document.getElementById('overlay');
+canvas2.width = width;
+canvas2.height = height;
+
+
+
 
 // create renderer
 var render = Render.create({
-    element: document.body,
+    canvas: canvas1,
     engine: engine,
     options: {
         width: width,
@@ -43,12 +53,13 @@ Render.run(render);
 
 
 
-
 // create two ships
-function makeaship(x, y) {
+function makeaship(x, y, label) {
     return Bodies.circle(
         x, y, 15,
         {
+            label: label,
+            shields: 100,
             restitution: 0.99,  // bounce
             friction: 0,
             frictionAir: 0,
@@ -62,13 +73,32 @@ function makeaship(x, y) {
         }
     );
 }
-var ship1 = makeaship(width*0.1, height*0.9),
-    ship2 = makeaship(width*0.9, height*0.1);
+var ship1 = makeaship(width*0.1, height*0.9, 'ship1'),
+    ship2 = makeaship(width*0.9, height*0.1, 'ship2');
+
+
+
+
+function update_status(ctx) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.strokeStyle = 'white';
+    ctx.beginPath();
+    ctx.moveTo(10, 10);
+    ctx.lineTo(10+ship1.shields, 10);
+    ctx.stroke();
+
+}
+
+var ctx2 = canvas2.getContext('2d');
+update_status(ctx2);
+
+
 
 var planet = Bodies.circle(
     width*0.5, height*0.5, 30,
     {
         isStatic: true,
+        label: 'planet',
         plugin: {
             attractors: [
                 function(bodyA, bodyB) {
@@ -85,6 +115,12 @@ var planet = Bodies.circle(
 World.add(world, [planet, ship1, ship2]);
 
 
+// go!
+var runner = Runner.create();
+Runner.run(runner, engine);
+
+
+
 var thrust = 0.0005,
     spin = 0.1;
 
@@ -97,6 +133,12 @@ document.body.addEventListener("keydown", function(e) {
 document.body.addEventListener("keyup", function(e) {
     keys[e.keyCode] = false;
 });
+
+
+
+
+
+
 
 Events.on(engine, "beforeTick", function(event) {
     if (keys[65]) {  // a
@@ -131,14 +173,36 @@ Events.on(engine, "beforeTick", function(event) {
         Body.setAngularVelocity(ship2, 0);
     }
 
-
 });
 
 
+Events.on(engine, 'collisionStart', function(event) {
+    var pairs = event.pairs,
+        npairs = pairs.length;
+    for (var i = 0; i < npairs; i++) {
+        pair = pairs[i];
+        if (pair.bodyA.label.startsWith("ship") && pair.bodyB.label === 'planet') {
+            pair.bodyA.shields -= 10;
+            if (pair.bodyA.shields < 0) {
+                Runner.stop(runner);
+            }
+        }
+        if (pair.bodyB.label.startsWith("ship") && pair.bodyA.label === 'planet') {
+            pair.bodyB.shields -= 10;
+            if (pair.bodyB.shields < 0) {
+                Runner.stop(runner);
+            }
+        }
+    }
+});
 
 
-
-// go!
-var runner = Runner.create();
-Runner.run(runner, engine);
-
+Events.on(render, 'afterRender', function() {
+    var ctx = render.canvas.getContext('2d');
+    ctx.strokeStyle = "white";
+    ctx.strokeWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(50, 50);
+    ctx.lineTo(200, 200);
+    ctx.stroke();
+});
