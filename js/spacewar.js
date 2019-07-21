@@ -12,7 +12,9 @@ var Engine = Matter.Engine,
     World = Matter.World,
     Body = Matter.Body,
     Vector = Matter.Vector,
-    Bodies = Matter.Bodies;
+    Bodies = Matter.Bodies,
+    Composite = Matter.Composite,
+    Query = Matter.Query;
 
 
 // create an engine
@@ -60,6 +62,7 @@ function makeaship(x, y, label) {
         {
             label: label,
             shields: 100,
+            fired: false,
             restitution: 0.99,  // bounce
             friction: 0,
             frictionAir: 0,
@@ -76,21 +79,6 @@ function makeaship(x, y, label) {
 var ship1 = makeaship(width*0.1, height*0.9, 'ship1'),
     ship2 = makeaship(width*0.9, height*0.1, 'ship2');
 
-
-
-
-function update_status(ctx) {
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    ctx.strokeStyle = 'white';
-    ctx.beginPath();
-    ctx.moveTo(10, 10);
-    ctx.lineTo(10+ship1.shields, 10);
-    ctx.stroke();
-
-}
-
-var ctx2 = canvas2.getContext('2d');
-update_status(ctx2);
 
 
 
@@ -126,7 +114,8 @@ var thrust = 0.0005,
 
 // looks for key presses and logs them
 // https://gist.github.com/lilgreenland/c6f4b78a78b73dc8b1f8fa650d617b85
-var keys = [];
+var keys = [],
+    keysRepeat = [];
 document.body.addEventListener("keydown", function(e) {
     keys[e.keyCode] = true;
 });
@@ -137,10 +126,31 @@ document.body.addEventListener("keyup", function(e) {
 
 
 
+function fireLaser(ship) {
+    // endPoint should extend out from nose of ship to some limit
+    var length = 100;
+    var startPoint = {
+            x: ship.position.x, 
+            y: ship.position.y
+        },
+        endPoint = {
+            x: startPoint.x + length*Math.cos(ship.angle), 
+            y: startPoint.y + length*Math.sin(ship.angle)
+        };
 
+    var bodies = Composite.allBodies(engine.world);
+    
+    console.log(endPoint);
+    
+    // check for collisions on path
+    var hits = Query.ray(bodies, startPoint, endPoint);
+}
 
 
 Events.on(engine, "beforeTick", function(event) {
+    /*
+    Detect key-down events for ship controls
+    */
     if (keys[65]) {  // a
         Body.rotate(ship1, -spin);
         Body.setAngularVelocity(ship1, 0);
@@ -157,6 +167,7 @@ Events.on(engine, "beforeTick", function(event) {
         Body.setAngularVelocity(ship1, 0);
     }
 
+    // the original used numeric keypad, but I'm writing this on a laptop..
     if (keys[75]) {  // k, rotate left
         Body.rotate(ship2, -spin);
         Body.setAngularVelocity(ship2, 0);
@@ -173,10 +184,31 @@ Events.on(engine, "beforeTick", function(event) {
         Body.setAngularVelocity(ship2, 0);
     }
 
+    // laser
+    if (keys[81]) {  // q, ship 1 laser
+        if (!ship1.fired) {
+            fireLaser(ship1);
+            ship1.fired = true;
+        }
+    } else {
+        ship1.fired = false;
+    }
+    if (keys[73]) {  // i, ship 2 laser
+        if (!ship2.fired) {
+            fireLaser(ship2);
+            ship2.fired = true;
+        }
+    } else {
+        ship2.fired = false;
+    }
+
 });
 
 
 Events.on(engine, 'collisionStart', function(event) {
+    // moment.js event handler provide list of all pairs of 
+    // bodies that have started to collide on this tick
+    // TODO: torpedos
     var pairs = event.pairs,
         npairs = pairs.length;
     for (var i = 0; i < npairs; i++) {
@@ -184,7 +216,9 @@ Events.on(engine, 'collisionStart', function(event) {
         if (pair.bodyA.label.startsWith("ship") && pair.bodyB.label === 'planet') {
             pair.bodyA.shields -= 10;
             if (pair.bodyA.shields < 0) {
+                // ship explode - stop simulation
                 Runner.stop(runner);
+                // TODO: trigger explosion animation and game end sequence
             }
         }
         if (pair.bodyB.label.startsWith("ship") && pair.bodyA.label === 'planet') {
@@ -198,11 +232,25 @@ Events.on(engine, 'collisionStart', function(event) {
 
 
 Events.on(render, 'afterRender', function() {
+    // fired after rendering
+
+    // coordinates relative top-left corner
+    var x1 = render.canvas.width*0.05,
+        y1 = render.canvas.height*0.95,
+        x2 = render.canvas.width*0.95;
+
     var ctx = render.canvas.getContext('2d');
+
+    // draw shield levels
     ctx.strokeStyle = "white";
-    ctx.strokeWidth = 5;
+    ctx.strokeWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(50, 50);
-    ctx.lineTo(200, 200);
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(Math.max(x1, x1+ship1.shields*2), y1);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x2, y1);
+    ctx.lineTo(Math.min(x2, x2-ship2.shields*2), y1);
     ctx.stroke();
 });
