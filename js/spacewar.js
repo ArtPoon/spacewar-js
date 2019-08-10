@@ -72,6 +72,11 @@ function makeaship(x, y, label) {
                     min: {x: 0, y: 0},
                     max: {x: render.canvas.width, y: render.canvas.height}
                 }
+            },
+            render: {
+              sprite: {
+                texture: '../img/ship2.png'
+              }
             }
         }
     );
