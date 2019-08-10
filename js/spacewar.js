@@ -109,7 +109,7 @@ Runner.run(runner, engine);
 
 
 
-var thrust = 0.0005,
+var thrust = 0.0003,
     spin = 0.1;
 
 // looks for key presses and logs them
@@ -128,22 +128,66 @@ document.body.addEventListener("keyup", function(e) {
 
 function fireLaser(ship) {
     // endPoint should extend out from nose of ship to some limit
-    var length = 100;
+    var lrange = 100;
     var startPoint = {
-            x: ship.position.x, 
-            y: ship.position.y
+            x: ship.position.x + 15*Math.cos(ship.angle), 
+            y: ship.position.y + 15*Math.sin(ship.angle)
         },
         endPoint = {
-            x: startPoint.x + length*Math.cos(ship.angle), 
-            y: startPoint.y + length*Math.sin(ship.angle)
+            x: startPoint.x + lrange*Math.cos(ship.angle), 
+            y: startPoint.y + lrange*Math.sin(ship.angle)
         };
 
     var bodies = Composite.allBodies(engine.world);
-    
-    console.log(endPoint);
+    var ctx = render.canvas.getContext('2d');
+    //console.log(endPoint);
     
     // check for collisions on path
     var hits = Query.ray(bodies, startPoint, endPoint);
+    
+    if (hits.length > 0) {
+        // we hit something!  what was the closest thing?
+        var collision,
+            dx, dy, dist, 
+            mindist = 2*lrange,
+            nearest = null;
+
+        for (var i=0; i < hits.length; i++) { 
+            collision = hits[i];
+
+            dx = ship.position.x - collision.body.position.x;
+            dy = ship.position.y - collision.body.position.y;
+            dist = Math.sqrt(dx*dx + dy*dy);
+            console.log(dist);
+
+            if (dist < mindist) {
+                mindist = dist;
+                nearest = collision.body;
+            }
+        }
+
+        // draw the laser
+        ctx.beginPath();
+        ctx.moveTo(startPoint.x, startPoint.y);
+        ctx.lineTo(nearest.position.x, nearest.position.y);
+        ctx.stroke();
+
+        // deduct shields if ship
+        if (nearest.label.startsWith('ship')) {
+            nearest.shields -= 5;
+            if (nearest.shields < 0) {
+                Runner.stop(runner);
+            }
+        }
+
+        // TODO: explode torpedo
+    } else {
+        ctx.beginPath();
+        ctx.moveTo(startPoint.x, startPoint.y);
+        ctx.lineTo(endPoint.x, endPoint.y);
+        ctx.stroke();
+    }
+
 }
 
 
