@@ -128,7 +128,7 @@ document.body.addEventListener("keyup", function(e) {
 
 function fireLaser(ship) {
     // endPoint should extend out from nose of ship to some limit
-    var lrange = 100;
+    var lrange = 150;
     var startPoint = {
             x: ship.position.x + 15*Math.cos(ship.angle), 
             y: ship.position.y + 15*Math.sin(ship.angle)
@@ -158,7 +158,6 @@ function fireLaser(ship) {
             dx = ship.position.x - collision.body.position.x;
             dy = ship.position.y - collision.body.position.y;
             dist = Math.sqrt(dx*dx + dy*dy);
-            console.log(dist);
 
             if (dist < mindist) {
                 mindist = dist;
