@@ -57,7 +57,7 @@ Render.run(render);
 
 
 // create two ships
-function makeaship(x, y, label) {
+function makeaship(x, y, label, sprite) {
     return Bodies.circle(
         x, y, 15,
         {
@@ -76,13 +76,13 @@ function makeaship(x, y, label) {
             },
             render: {
               sprite: {
-                texture: './img/ship2.png'
+                texture: sprite
               }
             }
         });
 }
-var ship1 = makeaship(width*0.1, height*0.9, 'ship1'),
-    ship2 = makeaship(width*0.9, height*0.1, 'ship2');
+var ship1 = makeaship(width*0.1, height*0.9, 'ship1', './img/ship1.png'),
+    ship2 = makeaship(width*0.9, height*0.1, 'ship2', './img/ship2.png');
 
 
 
@@ -101,6 +101,11 @@ var planet = Bodies.circle(
                     };
                 }
             ]
+        },
+        render: {
+            sprite: {
+                texture: './img/planet.png'
+            }
         }
     }
     );
@@ -171,6 +176,8 @@ function fireLaser(ship) {
         }
 
         // draw the laser
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 2.0;
         ctx.beginPath();
         ctx.moveTo(startPoint.x, startPoint.y);
         ctx.lineTo(nearest.position.x, nearest.position.y);
