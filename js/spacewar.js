@@ -45,8 +45,9 @@ var render = Render.create({
     options: {
         width: width,
         height: height,
-        showVelocity: true,
-        showAngleIndicator: true
+        showVelocity: false,
+        showAngleIndicator: false,
+        wireframes: false
     }
 });
 
@@ -75,11 +76,10 @@ function makeaship(x, y, label) {
             },
             render: {
               sprite: {
-                texture: '../img/ship2.png'
+                texture: './img/ship2.png'
               }
             }
-        }
-    );
+        });
 }
 var ship1 = makeaship(width*0.1, height*0.9, 'ship1'),
     ship2 = makeaship(width*0.9, height*0.1, 'ship2');
@@ -96,8 +96,8 @@ var planet = Bodies.circle(
             attractors: [
                 function(bodyA, bodyB) {
                     return {
-                        x: (bodyA.position.x - bodyB.position.x) * 1e-7,
-                        y: (bodyA.position.y - bodyB.position.y) * 1e-7,
+                        x: (bodyA.position.x - bodyB.position.x) * 5e-8,
+                        y: (bodyA.position.y - bodyB.position.y) * 5e-8,
                     };
                 }
             ]
