@@ -1,3 +1,16 @@
+// globals
+var torpedoCost = 5,
+    shipRadius = 15,
+    initShields = 100,
+    initEnergy = 100,
+    maxTorpedos = 5,
+    planetRadius = 30,
+    planetGravity = 5e-8;
+
+var thrust = 0.0003,
+    spin = 0.1;
+
+
 // module aliases
 Matter.use(
     'matter-wrap',
@@ -59,14 +72,20 @@ Render.run(render);
 // create two ships
 function makeaship(x, y, label, sprite) {
     return Bodies.circle(
-        x, y, 15,
+        x, y, shipRadius,
         {
             label: label,
-            shields: 100,
-            fired: false,
+            shields: initShields,
+            energy: initEnergy,
+            torpedos: maxTorpedos,  // limit number actively flying around
+
+            firedLaser: false,  // used for controlling keydown
+            firedTorpedo: false,
+
             restitution: 0.99,  // bounce
             friction: 0,
             frictionAir: 0,
+
             // set the body's wrapping bounds
             plugin: {
                 wrap: {
@@ -85,10 +104,8 @@ var ship1 = makeaship(width*0.1, height*0.9, 'ship1', './img/ship1.png'),
     ship2 = makeaship(width*0.9, height*0.1, 'ship2', './img/ship2.png');
 
 
-
-
 var planet = Bodies.circle(
-    width*0.5, height*0.5, 30,
+    width*0.5, height*0.5, planetRadius,
     {
         isStatic: true,
         label: 'planet',
@@ -96,8 +113,8 @@ var planet = Bodies.circle(
             attractors: [
                 function(bodyA, bodyB) {
                     return {
-                        x: (bodyA.position.x - bodyB.position.x) * 5e-8,
-                        y: (bodyA.position.y - bodyB.position.y) * 5e-8,
+                        x: (bodyA.position.x - bodyB.position.x) * planetGravity,
+                        y: (bodyA.position.y - bodyB.position.y) * planetGravity,
                     };
                 }
             ]
@@ -119,8 +136,7 @@ Runner.run(runner, engine);
 
 
 
-var thrust = 0.0003,
-    spin = 0.1;
+
 
 // looks for key presses and logs them
 // https://gist.github.com/lilgreenland/c6f4b78a78b73dc8b1f8fa650d617b85
@@ -134,72 +150,6 @@ document.body.addEventListener("keyup", function(e) {
 });
 
 
-
-
-function fireLaser(ship) {
-    // endPoint should extend out from nose of ship to some limit
-    var lrange = 150;
-    var startPoint = {
-            x: ship.position.x + 15*Math.cos(ship.angle), 
-            y: ship.position.y + 15*Math.sin(ship.angle)
-        },
-        endPoint = {
-            x: startPoint.x + lrange*Math.cos(ship.angle), 
-            y: startPoint.y + lrange*Math.sin(ship.angle)
-        };
-
-    var bodies = Composite.allBodies(engine.world);
-    var ctx = render.canvas.getContext('2d');
-    //console.log(endPoint);
-    
-    // check for collisions on path
-    var hits = Query.ray(bodies, startPoint, endPoint);
-    
-    if (hits.length > 0) {
-        // we hit something!  what was the closest thing?
-        var collision,
-            dx, dy, dist, 
-            mindist = 2*lrange,
-            nearest = null;
-
-        for (var i=0; i < hits.length; i++) { 
-            collision = hits[i];
-
-            dx = ship.position.x - collision.body.position.x;
-            dy = ship.position.y - collision.body.position.y;
-            dist = Math.sqrt(dx*dx + dy*dy);
-
-            if (dist < mindist) {
-                mindist = dist;
-                nearest = collision.body;
-            }
-        }
-
-        // draw the laser
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 2.0;
-        ctx.beginPath();
-        ctx.moveTo(startPoint.x, startPoint.y);
-        ctx.lineTo(nearest.position.x, nearest.position.y);
-        ctx.stroke();
-
-        // deduct shields if ship
-        if (nearest.label.startsWith('ship')) {
-            nearest.shields -= 5;
-            if (nearest.shields < 0) {
-                Runner.stop(runner);
-            }
-        }
-
-        // TODO: explode torpedo
-    } else {
-        ctx.beginPath();
-        ctx.moveTo(startPoint.x, startPoint.y);
-        ctx.lineTo(endPoint.x, endPoint.y);
-        ctx.stroke();
-    }
-
-}
 
 
 Events.on(engine, "beforeTick", function(event) {
@@ -221,6 +171,7 @@ Events.on(engine, "beforeTick", function(event) {
         );
         Body.setAngularVelocity(ship1, 0);
     }
+    
 
     // the original used numeric keypad, but I'm writing this on a laptop..
     if (keys[75]) {  // k, rotate left
@@ -241,22 +192,45 @@ Events.on(engine, "beforeTick", function(event) {
 
     // laser
     if (keys[81]) {  // q, ship 1 laser
-        if (!ship1.fired) {
+        if (!ship1.firedLaser) {
+            // this causes laser to fire once with key press
+            // even if player holds down key
             fireLaser(ship1);
-            ship1.fired = true;
+            ship1.firedLaser = true;
         }
     } else {
-        ship1.fired = false;
-    }
-    if (keys[73]) {  // i, ship 2 laser
-        if (!ship2.fired) {
-            fireLaser(ship2);
-            ship2.fired = true;
-        }
-    } else {
-        ship2.fired = false;
+        // player stopped pressing key, re-enable firing
+        ship1.firedLaser = false;
     }
 
+    if (keys[73]) {  // i, ship 2 laser
+        if (!ship2.firedLaser) {
+            fireLaser(ship2);
+            ship2.firedLaser = true;
+        }
+    } else {
+        ship2.firedLaser = false;
+    }
+
+
+    // torpedo
+    if (keys[69]) {  // e, ship 1 torpedo
+        if (!ship1.firedTorpedo) {
+            fireTorpedo(ship1);
+            ship1.firedTorpedo = true;
+        }
+    } else {
+        ship1.firedTorpedo = false;
+    }
+
+    if (keys[80]) {  // p, ship 1 torpedo
+        if (!ship2.firedTorpedo) {
+            fireTorpedo(ship2);
+            ship2.firedTorpedo = true;
+        }
+    } else {
+        ship2.firedTorpedo = false;
+    }
 });
 
 
@@ -266,8 +240,11 @@ Events.on(engine, 'collisionStart', function(event) {
     // TODO: torpedos
     var pairs = event.pairs,
         npairs = pairs.length;
+
     for (var i = 0; i < npairs; i++) {
         pair = pairs[i];
+
+        // handle ship to planet collisions
         if (pair.bodyA.label.startsWith("ship") && pair.bodyB.label === 'planet') {
             pair.bodyA.shields -= 10;
             if (pair.bodyA.shields < 0) {
@@ -281,6 +258,13 @@ Events.on(engine, 'collisionStart', function(event) {
             if (pair.bodyB.shields < 0) {
                 Runner.stop(runner);
             }
+        }
+
+        // handle torpedo collisions
+        if (pair.bodyA.label.startsWith('torpedo') ) {
+            torpedoHit(pair.bodyA, pair.bodyB);
+        } else if (pair.bodyB.label.startsWith('torpedo')) {
+            torpedoHit(pair.bodyB, pair.bodyA)
         }
     }
 });
