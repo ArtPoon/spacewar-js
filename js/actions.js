@@ -52,7 +52,7 @@ function fireLaser(ship) {
 
         // deduct shields if ship
         if (nearest.label.startsWith('ship')) {
-            nearest.shields -= 5;
+            nearest.shields -= laserDamage;
             if (nearest.shields < 0) {
                 Runner.stop(runner);
             }
@@ -109,10 +109,9 @@ function fireTorpedo(ship) {
             //console.log(torpedo.label);
         World.add(world, [torpedo]);
 
-        // FIXME: ships can run into their own torpedos on launch
-        Body.applyForce(torpedo, torpedo.position, {
-            x: 0.001*Math.cos(ship.angle),
-            y: 0.001*Math.sin(ship.angle)
+        Body.setVelocity(torpedo, {
+            x: ship.velocity.x + launchSpeed*Math.cos(ship.angle),
+            y: ship.velocity.y + launchSpeed*Math.sin(ship.angle)
         })
     } 
     // else do nothing, ship cannot launch any more
@@ -126,6 +125,6 @@ function torpedoHit(torpedo, target) {
     if (target.label.startsWith('torpedo')) {
         explodeTorpedo(target);
     } else if (target.label.startsWith('ship')) {
-        target.shields -= 10;
+        target.shields -= torpedoDamage;
     }
 }

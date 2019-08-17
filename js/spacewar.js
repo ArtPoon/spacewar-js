@@ -3,7 +3,13 @@ var torpedoCost = 5,
     shipRadius = 15,
     initShields = 100,
     initEnergy = 100,
+
     maxTorpedos = 5,
+    launchSpeed = 5,  // of torpedo
+    torpedoDamage = 10,
+
+    laserDamage = 5,
+    
     planetRadius = 30,
     planetGravity = 5e-8;
 
