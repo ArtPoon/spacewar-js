@@ -9,9 +9,12 @@ var torpedoCost = 5,
     torpedoDamage = 10,
 
     laserDamage = 5,
-    
+    laserRange = 150,
+    laserCooldown = 250, // milliseconds
+
     planetRadius = 30,
-    planetGravity = 5e-8;
+    planetGravity = 5e-8,
+    crashDamage = 10;
 
 var thrust = 0.0003,
     spin = 0.1;
@@ -86,6 +89,7 @@ function makeaship(x, y, label, sprite) {
             torpedos: maxTorpedos,  // limit number actively flying around
 
             firedLaser: false,  // used for controlling keydown
+            timeFired: 0,
             firedTorpedo: false,
 
             restitution: 0.99,  // bounce
@@ -252,18 +256,10 @@ Events.on(engine, 'collisionStart', function(event) {
 
         // handle ship to planet collisions
         if (pair.bodyA.label.startsWith("ship") && pair.bodyB.label === 'planet') {
-            pair.bodyA.shields -= 10;
-            if (pair.bodyA.shields < 0) {
-                // ship explode - stop simulation
-                Runner.stop(runner);
-                // TODO: trigger explosion animation and game end sequence
-            }
+            pair.bodyA.shields -= crashDamage;
         }
         if (pair.bodyB.label.startsWith("ship") && pair.bodyA.label === 'planet') {
-            pair.bodyB.shields -= 10;
-            if (pair.bodyB.shields < 0) {
-                Runner.stop(runner);
-            }
+            pair.bodyB.shields -= crashDamage;
         }
 
         // handle torpedo collisions
@@ -278,6 +274,14 @@ Events.on(engine, 'collisionStart', function(event) {
 
 Events.on(render, 'afterRender', function() {
     // fired after rendering
+    if (ship1.shields < 0) {
+        // ship explode - stop simulation
+        Runner.stop(runner);
+        // TODO: trigger explosion animation and game end sequence
+    }
+    if (ship2.shields < 0) {
+        Runner.stop(runner);
+    }
 
     // coordinates relative top-left corner
     var x1 = render.canvas.width*0.05,

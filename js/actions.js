@@ -1,21 +1,26 @@
 
 
 function fireLaser(ship) {
-    // TODO: enforce delay to prevent player from firing too frequently
+    var now = engine.timing.timestamp;
+    if (now - ship.timeFired < laserCooldown) {
+        //console.log('not yet!');
+        return;
+    }
 
-    // endPoint should extend out from nose of ship to some limit
-    var lrange = 150;
+    // endPoint should extend out from nose of ship to limit of range
     var startPoint = {
             x: ship.position.x + ship.circleRadius*Math.cos(ship.angle), 
             y: ship.position.y + ship.circleRadius*Math.sin(ship.angle)
         },
         endPoint = {
-            x: startPoint.x + lrange*Math.cos(ship.angle), 
-            y: startPoint.y + lrange*Math.sin(ship.angle)
+            x: startPoint.x + (ship.circleRadius+laserRange)*Math.cos(ship.angle), 
+            y: startPoint.y + (ship.circleRadius+laserRange)*Math.sin(ship.angle)
         };
 
     var bodies = Composite.allBodies(engine.world);
+
     var ctx = render.canvas.getContext('2d');
+    ctx.lineWidth = 2.0;  // FIXME: this isn't working..
     //console.log(endPoint);
     
     // check for collisions on path
@@ -25,7 +30,7 @@ function fireLaser(ship) {
         // we hit something!  what was the closest thing?
         var collision,
             dx, dy, dist, 
-            mindist = 2*lrange,
+            mindist = 2*laserRange,
             nearest = null;
 
         for (var i=0; i < hits.length; i++) { 
@@ -42,9 +47,6 @@ function fireLaser(ship) {
         }
 
         // draw the laser
-        ctx.strokeStyle = "white";
-        ctx.strokeWidth = 2.0;  // FIXME: this isn't working..
-
         ctx.beginPath();
         ctx.moveTo(startPoint.x, startPoint.y);
         ctx.lineTo(nearest.position.x, nearest.position.y);
@@ -63,20 +65,23 @@ function fireLaser(ship) {
 
         // TODO: explode torpedo
     } else {
+        // draw laser to full range
         ctx.beginPath();
         ctx.moveTo(startPoint.x, startPoint.y);
         ctx.lineTo(endPoint.x, endPoint.y);
         ctx.stroke();
     }
 
+    // reset timer
+    ship.timeFired = engine.timing.timestamp;
 }
 
 
 function explodeTorpedo(torpedo) {
-    World.remove(world, torpedo);
     // TODO: display animation
     ship = Composite.get(world, torpedo.firedBy, 'body');
     ship.torpedos += 1;
+    World.remove(world, torpedo);
 }
 
 
@@ -85,7 +90,7 @@ function fireTorpedo(ship) {
         if (ship.energy < torpedoCost) {
             return; // do nothing
         }
-        ship.energy -= torpedoCost; 
+        //ship.energy -= torpedoCost; 
         ship.torpedos -= 1;
 
 
@@ -119,12 +124,11 @@ function fireTorpedo(ship) {
 
 
 function torpedoHit(torpedo, target) {
-    explodeTorpedo(torpedo);
-
     //console.log(torpedo.label, 'hit', target.label)
     if (target.label.startsWith('torpedo')) {
         explodeTorpedo(target);
     } else if (target.label.startsWith('ship')) {
         target.shields -= torpedoDamage;
     }
+    explodeTorpedo(torpedo);
 }
