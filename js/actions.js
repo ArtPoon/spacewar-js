@@ -1,11 +1,17 @@
 
 
 function fireLaser(ship) {
+    // check cooldown
     var now = engine.timing.timestamp;
     if (now - ship.timeFired < laserCooldown) {
-        //console.log('not yet!');
         return;
     }
+
+    // check energy
+    if (ship.energy < laserCost) {
+        return;
+    }
+    ship.energy -= laserCost;
 
     // endPoint should extend out from nose of ship to limit of range
     var startPoint = {
@@ -90,7 +96,7 @@ function fireTorpedo(ship) {
         if (ship.energy < torpedoCost) {
             return; // do nothing
         }
-        //ship.energy -= torpedoCost; 
+        ship.energy -= torpedoCost; 
         ship.torpedos -= 1;
 
 

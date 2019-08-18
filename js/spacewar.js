@@ -1,16 +1,18 @@
 // globals
-var torpedoCost = 5,
-    shipRadius = 15,
+var shipRadius = 15,
     initShields = 100,
     initEnergy = 100,
+    thrustCost = 0.1,
 
     maxTorpedos = 5,
     launchSpeed = 5,  // of torpedo
     torpedoDamage = 10,
+    torpedoCost = 5,
 
     laserDamage = 5,
     laserRange = 150,
     laserCooldown = 250, // milliseconds
+    laserCost = 2,
 
     planetRadius = 30,
     planetGravity = 5e-8,
@@ -146,13 +148,12 @@ Runner.run(runner, engine);
 
 
 
-
-
 // looks for key presses and logs them
 // https://gist.github.com/lilgreenland/c6f4b78a78b73dc8b1f8fa650d617b85
 var keys = [],
     keysRepeat = [];
 document.body.addEventListener("keydown", function(e) {
+    //console.log(e.keyCode);
     keys[e.keyCode] = true;
 });
 document.body.addEventListener("keyup", function(e) {
@@ -160,146 +161,3 @@ document.body.addEventListener("keyup", function(e) {
 });
 
 
-
-
-Events.on(engine, "beforeTick", function(event) {
-    /*
-    Detect key-down events for ship controls
-    */
-    if (keys[65]) {  // a
-        Body.rotate(ship1, -spin);
-        Body.setAngularVelocity(ship1, 0);
-    }
-    if (keys[68]) {  // d
-        Body.rotate(ship1, spin);
-        Body.setAngularVelocity(ship1, 0);
-    }
-    if (keys[83]) {  // s, thrust
-        Body.applyForce(ship1,
-            {x: ship1.position.x, y: ship1.position.y},
-            {x: Math.cos(ship1.angle) * thrust, y: Math.sin(ship1.angle) * thrust}
-        );
-        Body.setAngularVelocity(ship1, 0);
-    }
-    
-
-    // the original used numeric keypad, but I'm writing this on a laptop..
-    if (keys[75]) {  // k, rotate left
-        Body.rotate(ship2, -spin);
-        Body.setAngularVelocity(ship2, 0);
-    }
-    if (keys[186]) {  // ;, rotate right
-        Body.rotate(ship2, spin);
-        Body.setAngularVelocity(ship2, 0);
-    }
-    if (keys[76]) {  // l, thrust
-        Body.applyForce(ship2,
-            {x: ship2.position.x, y: ship2.position.y},
-            {x: Math.cos(ship2.angle) * thrust, y: Math.sin(ship2.angle) * thrust}
-            );
-        Body.setAngularVelocity(ship2, 0);
-    }
-
-    // laser
-    if (keys[81]) {  // q, ship 1 laser
-        if (!ship1.firedLaser) {
-            // this causes laser to fire once with key press
-            // even if player holds down key
-            fireLaser(ship1);
-            ship1.firedLaser = true;
-        }
-    } else {
-        // player stopped pressing key, re-enable firing
-        ship1.firedLaser = false;
-    }
-
-    if (keys[73]) {  // i, ship 2 laser
-        if (!ship2.firedLaser) {
-            fireLaser(ship2);
-            ship2.firedLaser = true;
-        }
-    } else {
-        ship2.firedLaser = false;
-    }
-
-
-    // torpedo
-    if (keys[69]) {  // e, ship 1 torpedo
-        if (!ship1.firedTorpedo) {
-            fireTorpedo(ship1);
-            ship1.firedTorpedo = true;
-        }
-    } else {
-        ship1.firedTorpedo = false;
-    }
-
-    if (keys[80]) {  // p, ship 1 torpedo
-        if (!ship2.firedTorpedo) {
-            fireTorpedo(ship2);
-            ship2.firedTorpedo = true;
-        }
-    } else {
-        ship2.firedTorpedo = false;
-    }
-});
-
-
-Events.on(engine, 'collisionStart', function(event) {
-    // moment.js event handler provide list of all pairs of 
-    // bodies that have started to collide on this tick
-    // TODO: torpedos
-    var pairs = event.pairs,
-        npairs = pairs.length;
-
-    for (var i = 0; i < npairs; i++) {
-        pair = pairs[i];
-
-        // handle ship to planet collisions
-        if (pair.bodyA.label.startsWith("ship") && pair.bodyB.label === 'planet') {
-            pair.bodyA.shields -= crashDamage;
-        }
-        if (pair.bodyB.label.startsWith("ship") && pair.bodyA.label === 'planet') {
-            pair.bodyB.shields -= crashDamage;
-        }
-
-        // handle torpedo collisions
-        if (pair.bodyA.label.startsWith('torpedo') ) {
-            torpedoHit(pair.bodyA, pair.bodyB);
-        } else if (pair.bodyB.label.startsWith('torpedo')) {
-            torpedoHit(pair.bodyB, pair.bodyA)
-        }
-    }
-});
-
-
-Events.on(render, 'afterRender', function() {
-    // fired after rendering
-    if (ship1.shields < 0) {
-        // ship explode - stop simulation
-        Runner.stop(runner);
-        // TODO: trigger explosion animation and game end sequence
-    }
-    if (ship2.shields < 0) {
-        Runner.stop(runner);
-    }
-
-    // coordinates relative top-left corner
-    var x1 = render.canvas.width*0.05,
-        y1 = render.canvas.height*0.95,
-        x2 = render.canvas.width*0.95;
-
-    var ctx = render.canvas.getContext('2d');
-
-    // draw shield levels
-    ctx.strokeStyle = "white";
-    ctx.strokeWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(Math.max(x1, x1+ship1.shields*2), y1);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(x2, y1);
-    ctx.lineTo(Math.min(x2, x2-ship2.shields*2), y1);
-    ctx.stroke();
-});
