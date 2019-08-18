@@ -86,25 +86,25 @@ function fireLaser(ship) {
 function explodeTorpedo(torpedo) {
     // TODO: display animation
     ship = Composite.get(world, torpedo.firedBy, 'body');
-    ship.torpedos += 1;
+    ship.ammo += 1;
     World.remove(world, torpedo);
 }
 
 
 function fireTorpedo(ship) {
-    if (ship.torpedos > 0) {  // TODO: energy requirement?
+    if (ship.ammo > 0) {  // TODO: energy requirement?
         if (ship.energy < torpedoCost) {
             return; // do nothing
         }
         ship.energy -= torpedoCost; 
-        ship.torpedos -= 1;
+        ship.ammo -= 1;
 
 
         var torpedo = Bodies.circle(
             ship.position.x + (ship.circleRadius+5)*Math.cos(ship.angle), 
             ship.position.y + (ship.circleRadius+5)*Math.sin(ship.angle), 
             5, {
-                label: 'torpedo.'+ship.label+'.'+ship.torpedos,
+                label: 'torpedo.'+ship.label+'.'+ship.ammo,
                 firedBy: ship.id,
                 restitution: 0.,
                 friction: 0,
@@ -137,4 +137,50 @@ function torpedoHit(torpedo, target) {
         target.shields -= torpedoDamage;
     }
     explodeTorpedo(torpedo);
+}
+
+function explodeShip(ship) {
+    // TODO: deactivate user controls
+    World.remove(world, ship);
+    ship.shields = 1;
+    ship.alive = false;
+    var stack = Composites.stack(
+        ship.position.x, ship.position.y, 7, 7, 0, 0, function(x, y) {
+            return Bodies.rectangle(x, y, 3, 3, {
+                render: {
+                    fillStyle: 'white'
+                }
+            });
+        }
+    )
+
+    for (var i = 0; i < stack.bodies.length; i++) {
+        var body = stack.bodies[i];
+        //console.log(body.mass);
+        Body.setDensity(body, 0.01);
+
+        var forceMagnitude = 0.01 * body.mass;
+        Body.setVelocity(body, {
+            x: ship.velocity.x,
+            y: ship.velocity.y
+        })
+        Body.applyForce(body, body.position, {
+            x: (forceMagnitude + Common.random() * forceMagnitude) * Common.choose([1, -1]),
+            y: (forceMagnitude + Common.random() * forceMagnitude) * Common.choose([1, -1])
+        })
+    }
+    World.add(world, stack);
+
+    var idsToRemove = [];
+    for (var i = world.bodies.length-1; i>0; i--) {
+        var thisbody = world.bodies[i];
+        //console.log(thisbody.label);
+        if (thisbody.label.startsWith('torpedo')) {
+            var thisship = thisbody.label.split('.')[1];
+            //console.log(thisship);
+            if (thisship == ship.label) {
+                World.remove(world, thisbody);
+            }
+        }
+    }
 }

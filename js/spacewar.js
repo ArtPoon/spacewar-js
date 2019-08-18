@@ -14,8 +14,9 @@ var shipRadius = 15,
     laserCooldown = 250, // milliseconds
     laserCost = 2,
 
+    numberOfStars = 100;
     planetRadius = 30,
-    planetGravity = 5e-8,
+    planetGravity = 1e-8,
     crashDamage = 10;
 
 var thrust = 0.0003,
@@ -38,6 +39,7 @@ var Engine = Matter.Engine,
     Vector = Matter.Vector,
     Bodies = Matter.Bodies,
     Composite = Matter.Composite,
+    Composites = Matter.Composites,
     Query = Matter.Query;
 
 
@@ -55,10 +57,18 @@ var canvas1 = document.getElementById('world');
 canvas1.width = width;
 canvas1.height = height;
 
+
+// TODO: draw star field under main canvas
 var canvas2 = document.getElementById('overlay');
 canvas2.width = width;
 canvas2.height = height;
 
+var ctx2 = canvas2.getContext('2d');
+ctx2.fillStyle = 'white';
+for (var i = 0; i < numberOfStars; i++) {
+    ctx2.fillRect(Math.random()*canvas2.width, 
+    Math.random()*canvas2.height, 1, 1);
+}
 
 
 
@@ -88,11 +98,13 @@ function makeaship(x, y, label, sprite) {
             label: label,
             shields: initShields,
             energy: initEnergy,
-            torpedos: maxTorpedos,  // limit number actively flying around
+            ammo: maxTorpedos,  // limit number actively flying around
 
             firedLaser: false,  // used for controlling keydown
             timeFired: 0,
             firedTorpedo: false,
+
+            alive: true,  // if false, ignore all controls
 
             restitution: 0.99,  // bounce
             friction: 0,
