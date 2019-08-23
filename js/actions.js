@@ -84,10 +84,39 @@ function fireLaser(ship) {
 
 
 function explodeTorpedo(torpedo) {
-    // TODO: display animation
+    World.remove(world, torpedo);
+    
+    var stack = Composites.stack(
+      torpedo.position.x, torpedo.position.y, 3, 3, 0, 0, function(x, y) {
+        return Bodies.rectangle(x, y, 2, 2, {
+          label: "shrapnel",
+          render: {fillStyle: "white"}
+        });
+      })
+    
+    for (var i = 0; i < stack.bodies.length; i++) {
+      var body = stack.bodies[i];
+      Body.setDensity(body, 0.01);
+      var forceMagnitude = 0.01 * body.mass;
+      
+      // inertia
+      Body.setVelocity(body, {
+        x: torpedo.velocity.x,
+        y: torpedo.velocity.y
+      });
+      
+      Body.applyForce(body, body.position, {
+        x: (forceMagnitude + Common.random() * forceMagnitude) * Common.choose([1, -1]),
+        y: (forceMagnitude + Common.random() * forceMagnitude) * Common.choose([1, -1])
+      });
+    }
+    
+    World.add(world, stack);
+    
+    // reload one ammo unit to firing ship
     ship = Composite.get(world, torpedo.firedBy, 'body');
     ship.ammo += 1;
-    World.remove(world, torpedo);
+    
 }
 
 
@@ -100,10 +129,10 @@ function fireTorpedo(ship) {
         ship.ammo -= 1;
 
 
-        var torpedo = Bodies.circle(
+        var torpedo = Bodies.trapezoid(
             ship.position.x + (ship.circleRadius+5)*Math.cos(ship.angle), 
             ship.position.y + (ship.circleRadius+5)*Math.sin(ship.angle), 
-            5, {
+            14, 6, 1, {
                 label: 'torpedo.'+ship.label+'.'+ship.ammo,
                 firedBy: ship.id,
                 restitution: 0.,
@@ -115,6 +144,12 @@ function fireTorpedo(ship) {
                         max: {x: render.canvas.width, y: render.canvas.height}
                     }
                 },
+                angle: ship.angle,
+                render: {
+                    sprite: {
+                      texture: "./img/photon.png"
+                    }
+                }
             });
         
             //console.log(torpedo.label);
@@ -145,8 +180,9 @@ function explodeShip(ship) {
     ship.shields = 1;
     ship.alive = false;
     var stack = Composites.stack(
-        ship.position.x, ship.position.y, 7, 7, 0, 0, function(x, y) {
+        ship.position.x, ship.position.y, 10, 10, 0, 0, function(x, y) {
             return Bodies.rectangle(x, y, 3, 3, {
+                label: 'debris',
                 render: {
                     fillStyle: 'white'
                 }
@@ -163,11 +199,11 @@ function explodeShip(ship) {
         Body.setVelocity(body, {
             x: ship.velocity.x,
             y: ship.velocity.y
-        })
+        });
         Body.applyForce(body, body.position, {
             x: (forceMagnitude + Common.random() * forceMagnitude) * Common.choose([1, -1]),
             y: (forceMagnitude + Common.random() * forceMagnitude) * Common.choose([1, -1])
-        })
+        });
     }
     World.add(world, stack);
 

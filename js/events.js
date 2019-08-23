@@ -125,20 +125,47 @@ Events.on(engine, 'collisionStart', function(event) {
 
     for (var i = 0; i < npairs; i++) {
         pair = pairs[i];
-
+        var l1 = pair.bodyA.label,
+            l2 = pair.bodyB.label;
+            
         // handle ship to planet collisions
-        if (pair.bodyA.label.startsWith("ship") && pair.bodyB.label === 'planet') {
+        if (l1.startsWith("ship") && l2 === 'planet') {
             pair.bodyA.shields -= crashDamage;
         }
-        if (pair.bodyB.label.startsWith("ship") && pair.bodyA.label === 'planet') {
+        if (l2.startsWith("ship") && l1 === 'planet') {
             pair.bodyB.shields -= crashDamage;
         }
 
         // handle torpedo collisions
-        if (pair.bodyA.label.startsWith('torpedo') ) {
+        if (l1.startsWith('torpedo') ) {
             torpedoHit(pair.bodyA, pair.bodyB);
-        } else if (pair.bodyB.label.startsWith('torpedo')) {
+        } else if (l2.startsWith('torpedo')) {
             torpedoHit(pair.bodyB, pair.bodyA)
+        }
+        
+    }
+});
+
+
+/*
+Stolen from: https://stackoverflow.com/questions/47207541/matter-js-how-to-remove-bodies-after-collision
+ */
+Events.on(engine, 'collisionEnd', function(event) {
+    var pair, pairs = event.pairs;
+    for (var i = 0; i < pairs.length; i++) {
+        pair = pairs[i];
+        if (pair.bodyA.label === 'shrapnel') {
+            Composite.remove(world, pair.bodyA, deep=true);
+        }
+        if (pair.bodyB.label === 'shrapnel') {
+            Composite.remove(world, pair.bodyB, deep=true);
+        }
+        
+        if (pair.bodyA.label === 'debris' && pair.bodyB.label==='planet') {
+            Composite.remove(world, pair.bodyA, deep=true);
+        }
+        if (pair.bodyB.label === 'debris' && pair.bodyA.label==='planet') {
+            Composite.remove(world, pair.bodyB, deep=true);
         }
     }
 });

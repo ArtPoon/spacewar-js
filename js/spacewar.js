@@ -20,7 +20,7 @@ var shipRadius = 15,
     crashDamage = 10;
 
 var thrust = 0.0003,
-    spin = 0.1;
+    spin = 0.07;
 
 
 // module aliases
