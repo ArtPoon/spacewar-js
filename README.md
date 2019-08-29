@@ -4,6 +4,7 @@
 
 It is currently a two-player game.  I'm not sure how I'd implemented an AI yet.
 
+You can play it at http://artpoon.github.io/spacewar-js
 
 ## Controls
 
